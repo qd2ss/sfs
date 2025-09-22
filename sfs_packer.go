@@ -271,7 +271,7 @@ func (p *Packer) encodeShortArray(v []int16) error {
 	if err := p.buf.WriteByte(byte(SHORT_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	return binary.Write(p.buf, binary.BigEndian, v)
@@ -281,7 +281,7 @@ func (p *Packer) encodeIntArray(v []int32) error {
 	if err := p.buf.WriteByte(byte(INT_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	return binary.Write(p.buf, binary.BigEndian, v)
@@ -291,7 +291,7 @@ func (p *Packer) encodeLongArray(v []int64) error {
 	if err := p.buf.WriteByte(byte(LONG_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	return binary.Write(p.buf, binary.BigEndian, v)
@@ -301,7 +301,7 @@ func (p *Packer) encodeFloatArray(v []float32) error {
 	if err := p.buf.WriteByte(byte(FLOAT_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	return binary.Write(p.buf, binary.BigEndian, v)
@@ -311,7 +311,7 @@ func (p *Packer) encodeDoubleArray(v []float64) error {
 	if err := p.buf.WriteByte(byte(DOUBLE_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	return binary.Write(p.buf, binary.BigEndian, v)
@@ -321,7 +321,7 @@ func (p *Packer) encodeUtfStringArray(v []string) error {
 	if err := p.buf.WriteByte(byte(UTF_STRING_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	for _, s := range v {

@@ -122,12 +122,12 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return string(strBytes), nil
 	case BOOL_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
 		arr := make([]bool, size)
-		for i := uint32(0); i < size; i++ {
+		for i := uint16(0); i < size; i++ {
 			val, err := u.buf.ReadByte()
 			if err != nil {
 				return nil, err
@@ -146,7 +146,7 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case SHORT_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case INT_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
@@ -176,7 +176,7 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case FLOAT_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
@@ -186,7 +186,7 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case DOUBLE_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
@@ -196,12 +196,12 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case UTF_STRING_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
 		arr := make([]string, size)
-		for i := uint32(0); i < size; i++ {
+		for i := uint16(0); i < size; i++ {
 			var length uint16
 			if err := binary.Read(u.buf, binary.BigEndian, &length); err != nil {
 				return nil, err
