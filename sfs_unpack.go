@@ -239,9 +239,9 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not decode value for key: %s, error: %v", key, err)
 			}
-			if value == nil {
-				return nil, fmt.Errorf("could not decode value for key: %s", key)
-			}
+			// if value == nil {
+			// 	return nil, fmt.Errorf("could not decode value for key: %s", key)
+			// }
 
 			obj[key] = value
 		}
