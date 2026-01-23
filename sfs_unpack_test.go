@@ -13,6 +13,35 @@ type Data struct {
 	Index int32 `sfs:"index"`
 }
 
+func TestArrayRoundtrip(t *testing.T) {
+	obj := SFSObject{
+		"bools": []bool{true, false, true, false},
+		"longs": []int64{1, 2, 3, 4, 5},
+	}
+	p := NewPacker()
+	data, err := p.Pack(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := NewUnpacker(data)
+	v, err := u.Unpack()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sfo, ok := v.(SFSObject)
+	if !ok {
+		t.Fatalf("unexpected type: %T", v)
+	}
+	bools, ok := sfo["bools"].([]bool)
+	if !ok || len(bools) != 4 {
+		t.Fatalf("bools wrong type/len: %T len=%d", sfo["bools"], len(bools))
+	}
+	longs, ok := sfo["longs"].([]int64)
+	if !ok || len(longs) != 5 {
+		t.Fatalf("longs wrong type/len: %T len=%d", sfo["longs"], len(longs))
+	}
+}
+
 type Respond struct {
 	Code int32  `sfs:"code"`
 	Data Data   `sfs:"data"`
@@ -25,7 +54,7 @@ type P struct {
 }
 
 func TestUpack(t *testing.T) {
-	hexStr := "gADYEgADAAFjAgEAAWEDAA0AAXASAAMAAWMIAAdoNS5zcGluAAFyBP////8AAXASAAEABmVudGl0eRIABgAFZGVub20IAAIyMAAMZXh0cmFCZXRUeXBlCAAKTm9FeHRyYUJldAALZ2FtZVN0YXRlSWQIAAEwAAlwbGF5ZXJCZXQIAAI1MAAOYnV5RmVhdHVyZVR5cGUIAARudWxsAApiZXRSZXF1ZXN0EgADAAdiZXRUeXBlCAAHV2F5R2FtZQAJYmV0Q29sdW1uBAAAAAUABndheUJldAQAAAAB"
+	hexStr := "AAA4EgADAAFjAwABAAFwEgACAAFjCAABeAABcBIAAgAEY29kZQQAAADIAAF4Bz/wKtGZN+yyAAFhAg0="
 	data, err := base64.StdEncoding.DecodeString(hexStr)
 	if err != nil {
 		fmt.Println("base64 decode error:", err)
@@ -64,7 +93,7 @@ func TestPackByStruct(t *testing.T) {
 
 	if err == nil {
 		t.Logf("pack by struct: %v", rsp)
-		bytes, err := NewPacker().Pack(rsp, false)
+		bytes, err := NewPacker().Pack(rsp)
 		if err == nil {
 			t.Logf("pack by struct: %v", bytes)
 		}
@@ -82,7 +111,7 @@ func TestPackByStruct(t *testing.T) {
 	}
 
 	packer := NewPacker()
-	v, err := packer.Pack(sendData, false)
+	v, err := packer.Pack(sendData)
 
 	fmt.Println(base64.StdEncoding.EncodeToString(v))
 
@@ -107,4 +136,28 @@ func TestPackByStruct(t *testing.T) {
 	// 	t.Logf("pack by struct: %v", err)
 	// }
 
+}
+
+func TestPackCompressed(t *testing.T) {
+	obj := SFSObject{
+		"a": uint8(0),
+		"c": int16(0),
+		"p": SFSObject{
+			"api": "1.7.15",
+			"cl":  "JavaScript",
+		},
+	}
+	p := NewPacker()
+	data, err := p.Pack(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u := NewUnpacker(data)
+	v, err := u.Unpack()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := v.(SFSObject); !ok {
+		t.Fatalf("unexpected type: %T", v)
+	}
 }

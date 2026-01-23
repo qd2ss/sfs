@@ -17,48 +17,26 @@ func NewPacker() *Packer {
 	return &Packer{buf: new(bytes.Buffer)}
 }
 
-func (p *Packer) Pack(data SFSObject, compress bool) ([]byte, error) {
-	// First encode the SFSObject to binary
+// 压缩阈值：与 JS 实现保持一致，超过 1024 字节则进行 zlib 压缩
+const compressionThreshold = 1024
+
+// 4 字节长度阈值：与 JS 逻辑保持一致，超过 65335 则使用 4 字节长度并置位 0x08
+const lengthThreshold4 = 65335
+
+func (p *Packer) Pack(data SFSObject) ([]byte, error) {
 	if err := p.encodeSFSObject(data); err != nil {
 		return nil, err
 	}
 
 	dataBytes := p.buf.Bytes()
-	p.buf = new(bytes.Buffer) // Reset buffer
+	p.buf = new(bytes.Buffer)
 
-	// Set flags in first byte
-	var firstByte byte
-	if compress {
-		firstByte |= 32 // Set compression flag
-	}
+	// 首字节基础标志位设为 0x80，表示采用该协议帧格式（与 JS 保持一致）
+	var firstByte byte = 128
 
-	// Determine if we need 4-byte length
-	dataLength := len(dataBytes)
-	if dataLength > math.MaxUint16 {
-		firstByte |= 8 // Set 4-byte length flag
-	}
-
-	// Write first byte
-	if err := p.buf.WriteByte(firstByte); err != nil {
-		return nil, err
-	}
-
-	// Write length
-	if (firstByte & 8) > 0 {
-		if err := binary.Write(p.buf, binary.BigEndian, uint32(dataLength)); err != nil {
-			return nil, err
-		}
-	} else {
-		if dataLength > math.MaxUint16 {
-			return nil, errors.New("data too large for 2-byte length")
-		}
-		if err := binary.Write(p.buf, binary.BigEndian, uint16(dataLength)); err != nil {
-			return nil, err
-		}
-	}
-
-	// Compress if needed
-	if compress {
+	// 超过压缩阈值则进行压缩，并置位压缩标志位 0x20
+	if len(dataBytes) > compressionThreshold {
+		firstByte += 32
 		var compressed bytes.Buffer
 		w := zlib.NewWriter(&compressed)
 		if _, err := w.Write(dataBytes); err != nil {
@@ -69,7 +47,27 @@ func (p *Packer) Pack(data SFSObject, compress bool) ([]byte, error) {
 		dataBytes = compressed.Bytes()
 	}
 
-	// Write data
+	// 长度使用“最终负载长度”（压缩后长度），超过阈值则置位 0x08 使用 4 字节长度（与 JS 一致为 += 8）
+	dataLength := len(dataBytes)
+	if dataLength > lengthThreshold4 {
+		firstByte += 8
+	}
+
+	if err := p.buf.WriteByte(firstByte); err != nil {
+		return nil, err
+	}
+
+	// 长度字段采用大端序写入：置位 0x08 时写入 uint32，否则写入 uint16
+	if (firstByte & 8) > 0 {
+		if err := binary.Write(p.buf, binary.BigEndian, uint32(dataLength)); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := binary.Write(p.buf, binary.BigEndian, uint16(dataLength)); err != nil {
+			return nil, err
+		}
+	}
+
 	if _, err := p.buf.Write(dataBytes); err != nil {
 		return nil, err
 	}
