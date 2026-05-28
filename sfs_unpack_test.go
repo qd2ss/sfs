@@ -161,3 +161,52 @@ func TestPackCompressed(t *testing.T) {
 		t.Fatalf("unexpected type: %T", v)
 	}
 }
+
+func TestCompressionThreshold(t *testing.T) {
+	large := make([]byte, 1100)
+	for i := range large {
+		large[i] = byte('a' + (i % 26))
+	}
+	obj := SFSObject{"data": large}
+
+	p := NewPacker()
+	packed, err := p.Pack(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packed[0]&0x20 == 0 {
+		t.Fatalf("expected compressed packet with default ct, got header 0x%02x", packed[0])
+	}
+
+	p.SetCompressionThreshold(CompressionDisabled)
+	uncompressed, err := p.Pack(obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if uncompressed[0]&0x20 != 0 {
+		t.Fatalf("expected uncompressed packet with ct=%d, got header 0x%02x", CompressionDisabled, uncompressed[0])
+	}
+
+	// 与抓包场景一致：1530 字节 payload 在 ct=2147483647 时不压缩
+	capturedB64 := "gAX6EgADAAFjAgEAAWEDAA0AAXASAAMAAWMIAAlnYW1lTG9naW4AAXIE/////wABcBIAFwADdWlkCAAXNjI5ZGVtb2lucjAyMzExc2xvdEBBV0MACGdhbWVUeXBlBAAAAAgAC21hY2hpbmVUeXBlBAAAH1EABmJhbmtJZAgAAAAMc3RhcnRCYWxhbmNlBwAAAAAAAAAAAAVkZWJ1ZwEAAAdnYW1lVWlkCAAXNjI5ZGVtb2lucjAyMzExc2xvdEBBV0MACGdhbWVQYXNzCAAHYzAwZDExMQAIdXNlck5hbWUIABc2MjlkZW1vaW5yMDIzMTFzbG90QEFXQwAKc2Vzc2lvbklEMAgAAAAKc2Vzc2lvbklEMQgAAAAKc2Vzc2lvbklEMggAAAAKc2Vzc2lvbklEMwgEEENGNDQxNEMwREIxQzc4MTg2QTUzMjk2NzE2RDhFQzAxMjkxNDNDMjNBRkMxODRBMDcyQUVEMTJGQjc3NTNFODc4NEEwNTRGRjVCN0RBRTk4NUVGRDhDMUUxM0U5RjgyNjBFMTc3ODUzMTcyNENDMEEzMjEwMTQ3MzQ2MTczODEzMkUzMzlFRENBMUFBMDAxMkZBQzQ4OUM1OUI1MjAxMjdEOTgyQTg5NzZCQTQ1MzhCREZBQjg3MjY4RUE1RTYzNzREMjU5Q0MxOTA1NTkwOTlFMTIzNURGRTVCODRDQjQ0MDUwOEZBRUI0NEEzOTZCNDA4MkEzQjcyMEUyQTgyMUU0RjJFMUQ2QkI4NkRCMjU0QTEyRDcwODIxODY2NjE1RTFGMjRDMEU3NjdDNUREN0NGNzczMTI0NTUxRTYyNzFGOEQ3Q0NEQTJEMTYyQUREQ0EwNTU1MkJGQUM3N0Y1M0ZBQjc0MzJFQ0VFMEQ1RjQ4MjIwNEQ4RjE1Q0RBNDM1RTJEMTczQzkzMzlEMEExQzM1NDVGQUU2RDU1MEVBNEUwNjBCNUIwOTVCOUI5NTk2ODU4REEzOEE1RTYyNTMzMTI0QTkyOTFFOTI5RDc5RDNDNTEyRUNGMDI4NEI0M0EzRTZEMkNBOTdEQkQxOUVBNzcwMTY1NTU4RDkyMjA2MDgzRkZBNTJFQUM3RDlGNzkzOTdDRDcxMTAyMTE3NjNEQjJGODlBRkIxMTU2NTc3QUUyQjIxQzQ1RDgzMDlCMkQzNEUwNUM3NDkzOEU0RjY1RURDRjVCNjkwREEwQ0M4NkE5M0FGRDQ0NDZEMUNDMkU0NzczMjg4QzlEODVFQ0Y2OUUxNTBDRERCQjY1QzNEMTQ1NTczNjMzNzU3RDk0ODA2MzUxNTkzRjZBNkZEOTE5QTY2MzlCQzBDMzEzQkZFMzY0QTY4Qjc3NDhGNjNCQTdFREE5Q0VENjE3Q0M4MjcwN0NBRDIyNkMwOEYwNzkyNDM1QzNGMkJDRkE0MEUzRERFMUJFQzkwMzAyMUU2OUU3RjJEOENDRDhENUQ2N0ZCNEU4NTM5QThCODI3MTUwOTRDMEQzMjRCQjkwMjY4NjRGMEYzOThCQ0FGRTg2RkVGOUM2RURDMzdBMjVBMTMxOEE0QjRFRTNCOTJEM0IyN0YwNEMyMjA0QjA2N0Y2RURDNTM1RjJFRThBRDlDMTI4MzkxODcyNTQxQzA2OUNFQzI5QUNFRDRFMjE3Q0ZBQTIyNTMwMjhEOURFMkVFRkYwN0U4NTc0OTI1RDUyMEIxNjM2MUNDN0U2RjRFMzI1NEFBRkRDOTA1NEU2QzE3NDgyMTE1NjJCNEZDQjhBMTg5NUM4ODNGNzA0NzZFM0ZEOTY3MUZDAApzZXNzaW9uSUQ0CAAAAAZ1c2VTU0wBAQAIcGFzc3dvcmQIAAFhAApjbGllbnRUeXBlCAADV2ViAAF0CAAKamRiMTY4Lm5ldAANZ2FtZUxvZ2luTmFtZQgACWdhbWVMb2dpbgAEem9uZQgADUpEQl9aT05FX0dBTUUABHBvcnQEAAABuwAEaG9zdAgAD3N0MDMuamRiNzExLmNvbQAIem9uZU5hbWUIAA1KREJfWk9ORV9HQU1F"
+	captured, err := base64.StdEncoding.DecodeString(capturedB64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if captured[0] != 0x80 {
+		t.Fatalf("captured packet should be uncompressed, got 0x%02x", captured[0])
+	}
+	u := NewUnpacker(captured)
+	v, err := u.Unpack()
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.SetCompressionThreshold(CompressionDisabled)
+	repacked, err := p.Pack(v.(SFSObject))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repacked[0] != 0x80 {
+		t.Fatalf("repacked with server ct should stay uncompressed, got 0x%02x", repacked[0])
+	}
+}

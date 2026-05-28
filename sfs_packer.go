@@ -10,15 +10,33 @@ import (
 )
 
 type Packer struct {
-	buf *bytes.Buffer
+	buf                  *bytes.Buffer
+	compressionThreshold int
 }
 
 func NewPacker() *Packer {
-	return &Packer{buf: new(bytes.Buffer)}
+	return &Packer{
+		buf:                  new(bytes.Buffer),
+		compressionThreshold: DefaultCompressionThreshold,
+	}
 }
 
-// 压缩阈值：与 JS 实现保持一致，超过 1024 字节则进行 zlib 压缩
-const compressionThreshold = 1024
+// DefaultCompressionThreshold 为 SDK 默认值，与 JS 实现一致。
+const DefaultCompressionThreshold = 1024
+
+// CompressionDisabled 表示服务器通过 Handshake 下发的 ct=2147483647，禁用 SFS 层压缩。
+const CompressionDisabled = 2147483647
+
+// SetCompressionThreshold 设置压缩阈值 ct（Handshake 响应字段）。
+// 仅当编码后的 payload 长度严格大于 ct 时才压缩；ct 为 CompressionDisabled 时永不压缩。
+func (p *Packer) SetCompressionThreshold(ct int) {
+	p.compressionThreshold = ct
+}
+
+// CompressionThreshold 返回当前压缩阈值。
+func (p *Packer) CompressionThreshold() int {
+	return p.compressionThreshold
+}
 
 // 4 字节长度阈值：与 JS 逻辑保持一致，超过 65335 则使用 4 字节长度并置位 0x08
 const lengthThreshold4 = 65335
@@ -35,7 +53,7 @@ func (p *Packer) Pack(data SFSObject) ([]byte, error) {
 	var firstByte byte = 128
 
 	// 超过压缩阈值则进行压缩，并置位压缩标志位 0x20
-	if len(dataBytes) > compressionThreshold {
+	if len(dataBytes) > p.compressionThreshold {
 		firstByte += 32
 		var compressed bytes.Buffer
 		w := zlib.NewWriter(&compressed)
