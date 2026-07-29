@@ -257,7 +257,7 @@ func (p *Packer) encodeBoolArray(v []bool) error {
 	if err := p.buf.WriteByte(byte(BOOL_ARRAY)); err != nil {
 		return err
 	}
-	if err := binary.Write(p.buf, binary.BigEndian, uint32(len(v))); err != nil {
+	if err := binary.Write(p.buf, binary.BigEndian, uint16(len(v))); err != nil {
 		return err
 	}
 	for _, b := range v {

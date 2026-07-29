@@ -166,7 +166,7 @@ func (u *Unpacker) decodeValue() (interface{}, error) {
 		}
 		return arr, nil
 	case LONG_ARRAY:
-		var size uint32
+		var size uint16
 		if err := binary.Read(u.buf, binary.BigEndian, &size); err != nil {
 			return nil, err
 		}
